@@ -20,6 +20,10 @@ const scm =  {
         disable: {
             type: Boolean,
             default: false
+        },
+        corruption_limit: {
+            type: Number,
+            default: 0
         }
     },
     needs: [String], //DK, GOLD, Teleport

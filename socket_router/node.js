@@ -1,67 +1,107 @@
+const { Account_Routine } = require("../db")
+const { findIndex } = require("../helper")
+
 namespace = io.of('/node')
 // const only = (obj, keys) => collect(obj).only(keys).all()
 namespace.on("connection",  async(socket) =>  {
-    let  node_number = socket.handshake.query.number
+    let node_number =  socket.handshake.query.number
+    
+    // console.log(state)
+    console.log("before node connect", state.nodes)
     state.socket_nodes[node_number]  =  socket
-    const sync_nodes = () => {
-        try{
-            // console.log(state.nodes)
-            // console.log("sync to client",  only(Object.values(state.nodes), ["hwnd", "character"]))
-            state.client.emit("sync", state.nodes)
-        }catch(e){
-            console.log("Web client not connected")
-        }
-    }
-    const only = (obj, keys =[]) => {
-        keys.forEach(k => {delete obj[k]})
+    state.nodes[node_number] = {...state.nodes[node_number], ...{
+        state: true
+    }}
+    console.log(`Node number ${node_number} connected`)
+    console.log(state.nodes)
+    store.sync_to_web()
+    // const sync_nodes = () => {
+    //     try{
+    //         // console.log(state.nodes)
+    //         // console.log("sync to client",  only(Object.values(state.nodes), ["hwnd", "character"]))
+    //         state.client.emit("sync", state.nodes)
+    //     }catch(e){
+    //         console.log("Web client not connected")
+    //     }
+    // }
+    // const only = (obj, keys =[]) => {
+    //     keys.forEach(k => {delete obj[k]})
 
-    }
-    // console.log(`Node number ${node_number} connected`)
+    // }
 
     //DYNAMIC CHRACTER EVENT LISTENER
-    ["logged_in", "stuck", "disconnected"].forEach((v) => {
-        socket.on(`on_character_${v}`, ({response, character}) => {
-             
+    let events =  ["logged_in", "load_failed", "stuck", "disconnected", "request",  "done"]
+    events.forEach((v) => {
+        socket.on(`on_character_${v}`, ({response, character}) => {  
             console.log(response)
-            //DETERMINE NEXT ACTION
-            switch(store[`on_character_${v}`](character)) {
-                case "relog": socket.emit("handle_character", character) 
-                    break;
-                case "switch": socket.emit("handle_character", store.get_available_character())
-                    break;
-                default:
-              }
+            if(store[`on_character_${v}`]) store[`on_character_${v}`](node_number, character) //ONLY RUN METHOD IF IMPLEMENTED
+            
+            if (state.maintenace){
+                socket.emit("maintenance_start")
+                return //DONT CONTINUE REQUEST
+            }
+                
+            if (!["logged_in", "load_failed"].includes(v))  { 
+                taken_character =  store.get_available_character()
+                if(taken_character){
+                    console.log("TRY TO HANDLE", taken_character['character'])
+                    socket.emit("handle_character", taken_character)
+                }else{
+                    console.log("ALL CHARACTER DONE")
+                }
+               
+            }  
+            store.sync_to_web()
         })
     })
 
-    //FIRST CHARACTER REQUEST
-    // socket.emit("handle_character", store.get_available_character())
+    socket.on("character_routine_done", async(character, routine_name) => {
+        let character_index = findIndex(state.account_routines.logs, "character", character)
+        if(character_index > -1){
+           
+            if(!state.account_routines.logs[character_index].done.includes(routine_name)){
+                let date = new Date()
+                let hour = date.getHours()
+                //IF BELOW RESET HOUR USE PREVIOUS DAY, else already reset use today
+                let dateString =  hour>= RESET_HOUR ? moment(date).format("YYYY-MM-DD") : moment(date).subtract(1, "days").format("YYYY-MM-DD")
 
-    socket.on("disconnect", data => {
-        delete state.nodes[node_number]
+                state.account_routines.logs[character_index].done.push(routine_name)
+                await Account_Routine.updateOne({ date: dateString, character}, {
+                    "$push": {
+                        "logs.$.done": routine_name
+                    }
+                })
+            } 
+        }
+   
+    })
+
+
+
+    socket.on("maintenance_done", () => {
+        state.maintenace = false
+        console.log("maintenance done, logging toon")
+        taken_character =  store.get_available_character()
+        socket.emit("handle_character", taken_character)
+    })
+
+    //FIRST CHARACTER REQUEST
+    socket.on("terminate", ({response, character}) => {
+        console.log(response)
+        store.release_character(node_number, character)
+    })
+    socket.on("disconnect", () => {
+        if (state.nodes[node_number].account) store.release_character(node_number, state.nodes[node_number].account.character)
+        state.nodes[node_number].state = false
+        state.nodes[node_number].account = null
         console.log(`Node number ${node_number} disconnected`)
-        sync_nodes()
+        store.sync_to_web()
     })
     
-    socket.on("sync", (node) => {
-        console.log(node)
-        state.nodes[node_number] = node
-        sync_nodes()
+    socket.on("sync", () => {
+        store.sync_to_web()
         
     })      
 })
 
 
-
-// await sio.emit('on_logged_in', data={"response" : f"Character ${character['chracter']} is online", "character": character},  namespace="/node" )
-// await self.instance.run(character["routines"])
-// Thread(target=detect_error, daemon=True).start()
-
-// except TimeoutException as te:
-// await sio.emit('on_load_failed', data={"response" : f"Character ${character['chracter']} failed to loaded, posibility your internet too slow"},  namespace="/node" )
-
-// except LoginStuckException as le: 
-// await sio.emit('on_character_stuck', data={"response" : f"Character ${character['chracter']} stuck online, wait for 15 min or so"},  namespace="/node" )
-
-// except DisconnectException as de:
-// await sio.emit('on_character_disconnected', data={"response" : f"Character ${character['chracter']} disconnected, retrying login"},  namespace="/node" )

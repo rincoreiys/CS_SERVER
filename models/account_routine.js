@@ -1,26 +1,17 @@
 const mongoose  = require("mongoose")
-const routine_scm =  new mongoose.Schema({
-    name: String,
-    done: Boolean
-})
 
 const scm =  {
     date: Date,
-    log: {
+    logs: [{
         character: {
-            type: String,
-            required: true
+            type: String
         },
-        routines: [
-            {   
-                name: String,
-                done: {
-                    type: Date,
-                    default: null
-                }
-            }
-        ]
-    }
+        done: [String],
+        overall_done:{
+            type: Boolean,
+            default: false
+        }
+    }]
 }
 
 const schema = new mongoose.Schema(scm, {

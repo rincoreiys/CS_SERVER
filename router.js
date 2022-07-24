@@ -1,5 +1,7 @@
-const { Account, Routine } = require("./db");
-const moment = require('moment-timezone')
+const { Account, Routine, Account_Routine } = require("./db");
+const {generate_daily_log, isExist, currentDate, formatYMD} = require('./helper')
+const catchAsync = require("./utils/catchAsync");
+
 
 module.exports.register = (router) => {
   router.route("/account").get(async (req, res, next) => {
@@ -54,25 +56,6 @@ module.exports.register = (router) => {
   });
   router.post("/routine", async (req, res, next) => {
     try{
-        let dt = req.body;
-        let result = await Routine.insertMany(dt);
-        res.json(result);
-    }catch(e){
-        res.status(500).send(`Internal Error`)
-    }
-    
-  });
-  router.post("/account_routine", async (req, res, next) => {
-    try{
-        let accounts = await Account.find()
-        let routines= await Routine.find()
-        let account_routine = {
-            date: moment().tz("Asia/Jakarta"),
-            log: accounts.map(a => ({
-                character:  a.character,
-                routines: a.routines.map((ar) => ar.class_name)
-            }))
-        }
         let dt = req.body;
         let result = await Routine.insertMany(dt);
         res.json(result);

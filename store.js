@@ -1,90 +1,181 @@
-const { Account, Routine } = require('./db')
-const { createClient } = require("redis")
-const client = createClient({
-  url: 'redis://127.0.0.1:6379'
-});
-
+const { RESET_HOUR } = require('./cron')
+const { Account, Routine, Product, Account_Routine } = require('./db')
+const moment = require('moment-timezone');
+const Account_Routines = require('./models/account_routine');
+const { generate_daily_log } = require('./helper');
 const DEFAULT_NODE = {
-    hwnd: 0,
-    character: null
+    state: false,
+    account: null
 }
+
+const MAINTENANCE_HOUR = 15
+const MAINTENANCE_END = 19
+const MAINTENANCE_DAY = "Thursday"
+
+
 
 module.exports.Store = class Store{
     state =  {  
+        maintenance: this.is_maintenance(),
         accounts: [],
+        account_routines: {},
         nodes: {
             1: DEFAULT_NODE,
             2: DEFAULT_NODE,
             3: DEFAULT_NODE,
+            4: DEFAULT_NODE,
         },
         routines: [],
         on_hold_character: [], //by character, added when retrying login and stuck
         online_character: [], // added when character logged in
         stuck_character: [], // added when character stucked
+        done_character: ["aabbcc"],
 
         //WILL BE RESET EVERY SERVER RESET
-        done_character: [],
+        socket_nodes:  {},
+        
+        client: null,
+       
 
         //EMITER
-        socket_nodes: {},
-        client: {}
+       
     }
     
+    serialize( state  = this.state){
+        let data = Object.assign({} , state)
+        let excluded =  ['client' , 'socket_nodes']
+        excluded.forEach((v) => {
+            delete data[v]
+        })
+        return data 
+    }
+
+    sync_to_web(state = this.state){
+        if( store.state.client)  store.state.client.emit("sync", store.serialize())
+    }
 
     get_available_character( state  = this.state ){
-        console.log("get_available_character", state.on_hold_character)
-        let available_account = state.accounts.find((v, i) => 
+        // console.log("get_available_character", state.on_hold_character)
+        let available_account = Object.assign({}, state.accounts.find((v, i) => 
             !state.on_hold_character.includes(v.character) &&
             !state.online_character.includes(v.character) &&
             !state.stuck_character.includes(v.character) &&
             !state.done_character.includes(v.character)
-        )
-        console.log("available_account", available_account)
-        if (typeof available_account !== "undefined") {
-            state.on_hold_character.push(available_account.account)
-            // print( this.on_hold_character)
-        } 
-        return available_account
-    }
-
-    release_character(character){
-        let account_index = on_hold_character.indexOf(character)
-        if (account_index > - 1) delete on_hold_character[account_index]
-    }
-
-    on_character_done(character,state  = this.state ){
-        if (!state.done_character.includes(character))  state.done_character.push(character)
-        this.release_character(character)
-    }
-
-    on_logged_in(character,state  = this.state ){
-        if (!state.online_character.includes(character))  state.online_character.push(character)
-    }
-
-    on_character_stuck(character,state  = this.state ){
+        ))
         
+        // console.log(state.accounts)
+
+        if (typeof available_account !== "undefined") {
+            state.on_hold_character.push(available_account.character)
+            console.log("character", available_account)
+            console.log("character", available_account.character)
+            console.log("routines", available_account.routines)
+            available_account.routines = available_account.routines.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
+            // console.log("populated routines", available_account.routines)
+        } 
+        // console.log(available_account.routines.map(r => this.state.routines.find(rr => rr.class_name == r)))
+    
+        // console.log("available_account", available_account)
+
+        return available_account
+        
+    }
+
+    release_character(node_number, character, state  = this.state ){
+        let account_index = state.on_hold_character.indexOf(character)
+        if (account_index > - 1)  state.on_hold_character.splice(account_index, 1)
+        let online_index = state.online_character.indexOf(character)
+        if (online_index > - 1)  state.online_character.splice(online_index, 1)
+        console.log("Release" , account_index, online_index)
+    }
+
+    is_maintenance(){
+        let date =  new Date()
+        let hour = date.getHours()
+        return  ( 
+            date.toLocaleString('en-us', {weekday: 'long'}) == MAINTENANCE_DAY &&
+            ( hour  >= MAINTENANCE_HOUR  && hour <= MAINTENANCE_END) 
+        )
+    }
+
+    on_character_done(node_number, character,state  = this.state ){
+        this.release_character(node_number, character)
+        if (!state.done_character.includes(character))  state.done_character.push(character)
+
+    }
+
+    on_character_logged_in(node_number, character,state  = this.state ){
+        this.release_character(node_number, character)
+        if (!state.online_character.includes(character))   { 
+            state.online_character.push(character)
+            state.nodes[node_number].account = state.accounts.find(a => a.character == character)
+        }
+    }
+
+    on_character_request(node_number, chaacter, character,state  = this.state){  }
+
+    on_character_stuck(node_number, character, state  = this.state ){
+        this.release_character(node_number , character)
+        if (!state.stuck_character.includes(character))  state.stuck_character.push(character)
+        this.sync_to_web()
+        //WILL BE RELEASED IN 5 MIN 
+        setTimeout(() => {
+            let account_index = state.stuck_character.indexOf(character)
+            if (account_index > - 1)  state.stuck_character.splice(account_index, 1)
+        }, 300000)  
+    }
+
+    on_character_disconnected(node_number, character, state  = this.state ){
+        this.release_character(node_number, character)
+        this.sync_to_web()
+    }
+
+    set_maintenance( state  = this.state){
+        state.maintenance = true
+        state.on_hold_character = []
+        state.online_character = []
+        state.stuck_character = []
+        let exist_socket_node = Object.values(state.socket_nodes).filter(s => !!s)
+
+        // console.log(exist_socket_node)
+        exist_socket_node.forEach(
+            (socket) => {
+                mode ? socket.emit("maintenance_start") : socket.emit("maintenance_end")
+            }
+        )
+        this.sync_to_web()
+    }
+
+    check_maintenance(state  = this.state){
+        let exist_socket_node = Object.values(state.socket_nodes).filter(s => !!s)
+        exist_socket_node.forEach(
+            (socket) => {
+                socket.emit("check_maintenance") 
+            }
+        )
+        this.sync_to_web()
     }
     
     async init(){
-        this.state.accounts =   collect(await Account.find({}).sort({priority: 1})).mapWithKeys(account => [account.id, account]).all()
+        this.state.accounts =   await Account.find({}).sort({priority: 1}).lean()
         this.state.routines =  (await Routine.find({}).lean()).map(doc => {
             if (doc.routine_type == "Dungeon"){
                 doc.require_dk = false
             }
             return doc
-
         })
 
+        this.state.products = await Product.find().lean()
         
-        //  .map(r => {
-           
-        //     return r
-        // })
-        // console.log(this.state.account)
+        let date = new Date()
+        let hour = date.getHours()
+        //IF BELOW RESET HOUR USE PREVIOUS DAY, else already reset use today
+        let dateString =  hour>= RESET_HOUR ? moment(date).format("YYYY-MM-DD") : moment(date).subtract(1, "days").format("YYYY-MM-DD")
+        // let next_reset = moment().format("YYYY-MM-DD")
+        this.state.account_routines =  await generate_daily_log(dateString)
+
     }
-    async save(){
-        await client.set("cs_web", this.state)
-    }
+   
 }
 
 
