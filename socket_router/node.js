@@ -55,22 +55,25 @@ namespace.on("connection",  async(socket) =>  {
         })
     })
 
-    socket.on("character_routine_done", async(character, routine_name) => {
+    socket.on("on_character_routine_done", async(character, routine_name) => {
         let character_index = findIndex(state.account_routines.logs, "character", character)
         if(character_index > -1){
            
             if(!state.account_routines.logs[character_index].done.includes(routine_name)){
-                let date = new Date()
-                let hour = date.getHours()
-                //IF BELOW RESET HOUR USE PREVIOUS DAY, else already reset use today
-                let dateString =  hour>= RESET_HOUR ? moment(date).format("YYYY-MM-DD") : moment(date).subtract(1, "days").format("YYYY-MM-DD")
-
-                state.account_routines.logs[character_index].done.push(routine_name)
-                await Account_Routine.updateOne({ date: dateString, character}, {
-                    "$push": {
-                        "logs.$.done": routine_name
+                let date = formatYMD(req.params.date) || currentDate()
+                let character = req.params.character || null
+                let routine = req.params.routine || null
+                if (!!character && !!routine){
+                  let result = await Account_Routine.updateOne(
+                    { date, "logs.character" : character },
+                    {
+                      $addToSet: {
+                        "logs.$.done": routine,
+                      },
                     }
-                })
+                  )
+          
+                } 
             } 
         }
    
