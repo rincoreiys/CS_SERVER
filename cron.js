@@ -5,7 +5,7 @@ const CRON_CONFIG = {
     timezone: "Asia/Jakarta"
 } 
 const  cron = require('node-cron');
-const {Account_Routine} = require('./db')
+const {Account_Routine, Account} = require('./db')
 const {generate_daily_log} = require('./helper')
 
 const moment = require('moment-timezone');
@@ -13,7 +13,11 @@ const moment = require('moment-timezone');
 var daily_reset = cron.schedule(`0 0 ${RESET_HOUR} * * *`, async() =>  {
   state.done_character = []
   console.log("after reset", state.done_character)
-  console.log(await generate_daily_log(moment(new Date()).format("YYYY-MM-DD")) )
+  await Account.updateMany({}, {
+    $set: {
+      "done": []
+    }
+  })
 }, CRON_CONFIG);
 
 var maintenance_start = cron.schedule(`0 0 ${MAINTENANCE_HOUR} * * Thursday`, () =>  {

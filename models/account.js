@@ -30,8 +30,15 @@ const scm =  {
             default: false
         }
     },
+    state: {
+        bag_already_empty_before:{
+            type: Boolean,
+            default: false
+        }  
+    },
     needs: [String], //DK, GOLD, Teleport
-    routines: [String]
+    routines: [String],
+    done: [String]
 }
 
 

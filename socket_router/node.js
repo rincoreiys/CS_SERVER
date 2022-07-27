@@ -44,34 +44,44 @@ namespace.on("connection",  async(socket) =>  {
         })
     })
 
-    
+
 
     socket.on("on_character_routine_done", async({response, character, routine}) => {
         // console.log(response)
         // console.log("account.log", findIndex(state.account_routines.logs, 'character', character))
-        let character_index = findIndex(state.account_routines.logs, "character", character)
+        let character_index = findIndex(state.accounts, "character", character)
         // console.log("index", character_index)
         if(character_index > -1){
-            console.log("include", !state.account_routines.logs[character_index].done.includes(routine))
-            if(!state.account_routines.logs[character_index].done.includes(routine)){
+            console.log("include", !state.accounts[character_index].done.includes(routine))
+            if(!state.accounts[character_index].done.includes(routine)){
                 let date = new Date()
                 let hour = date.getHours()
                 //IF BELOW RESET HOUR USE PREVIOUS DAY, else already reset use today
                 let dateString =  hour>= RESET_HOUR ? moment(date).format("YYYY-MM-DD") : moment(date).subtract(1, "days").format("YYYY-MM-DD")
                 
-                await Account_Routine.updateOne(
-                { date: dateString, "logs.character" : character },
+                await Account.updateOne(
+                {  "character" : character },
                 {
                     $addToSet: {
-                    "logs.$.done": routine,
+                        "done": routine,
                     },
                 }
                 ).then(() => {
-                    state.account_routines.logs[character_index].done.push(routine)
+                    state.accounts[character_index].done.push(routine)
                 })
             } 
         }
    
+    })
+
+    socket.on("set_character_bag_state", async(character, bag_state) => {
+        let character_index = findIndex(state.accounts, "character". character)
+        await Account.updateOne({character}, {
+            $set : {
+                "state.bag_already_empty_before" : bag_state
+            }
+        })
+
     })
 
     socket.on("on_character_dk_empty", async({response, character}) => {
