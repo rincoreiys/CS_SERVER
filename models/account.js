@@ -24,6 +24,10 @@ const scm =  {
         corruption_limit: {
             type: Number,
             default: 0
+        },
+        has_big_pixie: {
+            type: Boolean,
+            default: false
         }
     },
     needs: [String], //DK, GOLD, Teleport

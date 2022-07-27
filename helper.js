@@ -35,7 +35,12 @@ async function isExist(e) {
 }
 
 function findIndex(collection, key, value){
-    let item = collection.find(c => c[key] == value)
+    // console.log("from find index collection", collection)
+    let item = collection.find(c => {
+        // console.log("from find key", c[key], value,  c[key] == value )
+        return c[key] == value
+    } )
+    // console.log("from find index", item)
     let index = collection.indexOf(item)
     return index
 

@@ -39,16 +39,18 @@ router
   )
   .post(
     catchAsync(async (req, res, next) => {
-      let date = formatYMD(req.params.date) || currentDate();
+      let date =  req.params.date ? formatYMD(req.params.date) : currentDate()
       let result = await generate_daily_log(date);
       res.status(200).send(result);
     })
   )
   .patch(
     catchAsync(async (req, res, next) => {
+      
       let date = formatYMD(req.params.date) || currentDate()
       let character = req.params.character || null
       let routine = req.params.routine || null
+      console.log("account.log", findIndexByKey(state.account_routines.logs, 'character', character))
       if (!!character && !!routine){
         let result = await Account_Routine.updateMany(
           { date, "logs.character" : character },

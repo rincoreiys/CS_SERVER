@@ -2,7 +2,7 @@ const { RESET_HOUR } = require('./cron')
 const { Account, Routine, Product, Account_Routine } = require('./db')
 const moment = require('moment-timezone');
 const Account_Routines = require('./models/account_routine');
-const { generate_daily_log } = require('./helper');
+const { generate_daily_log, findIndex } = require('./helper');
 const DEFAULT_NODE = {
     state: false,
     account: null
@@ -54,22 +54,50 @@ module.exports.Store = class Store{
         if( store.state.client)  store.state.client.emit("sync", store.serialize())
     }
 
+    // is_all_routine_done(character, character_routine, state = this.state){
+    //     let character_index = findIndex(state.account_routines.logs, 'character', character)
+    //     if (character_index > -1 ) {
+    //         let character_log = state.account_routines.logs[character_index].done
+    //         let undone_routine = 
+
+            
+    //         return false
+    //     }
+    //     return true
+    // }
+
+    undone_routine(character, character_routines, state = this.state){
+        let character_index = findIndex(state.account_routines.logs, 'character', character)
+        if (character_index > -1 ) {
+            let character_log = state.account_routines.logs[character_index].done
+            let routines_list =  state.routines.map(r => r.class_name)
+
+            let undone_routine = character_routines.filter(cr => !character_log.includes(cr))
+            console.log(character, character_routines, character_log, undone_routine )
+
+            //ONLY RETURN EXIST ROUTINE && UNDONE
+            return undone_routine
+        }
+        return []
+    }
+
     get_available_character( state  = this.state ){
         // console.log("get_available_character", state.on_hold_character)
         let available_account = Object.assign({}, state.accounts.find((v, i) => 
             !state.on_hold_character.includes(v.character) &&
             !state.online_character.includes(v.character) &&
             !state.stuck_character.includes(v.character) &&
-            !state.done_character.includes(v.character)
+            !state.done_character.includes(v.character) &&
+            this.undone_routine(v.character, v.routines).length
         ))
         
         // console.log(state.accounts)
 
         if (typeof available_account !== "undefined") {
             state.on_hold_character.push(available_account.character)
-            console.log("character", available_account)
-            console.log("character", available_account.character)
-            console.log("routines", available_account.routines)
+            // console.log("character", available_account)
+            // console.log("character", available_account.character)
+            // console.log("routines", available_account.routines)
             available_account.routines = available_account.routines.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
             // console.log("populated routines", available_account.routines)
         } 
@@ -112,7 +140,10 @@ module.exports.Store = class Store{
         }
     }
 
-    on_character_request(node_number, chaacter, character,state  = this.state){  }
+    on_character_request(node_number, character,state  = this.state){  }
+    on_character_load_failed(node_number, character, state  = this.state){
+        this.release_character(node_number, character)
+    }
 
     on_character_stuck(node_number, character, state  = this.state ){
         this.release_character(node_number , character)

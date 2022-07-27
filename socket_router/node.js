@@ -1,11 +1,13 @@
-const { Account_Routine } = require("../db")
+const { Account_Routine, Account } = require("../db")
 const { findIndex } = require("../helper")
-
+const { RESET_HOUR } = require('./../cron')
+const  moment = require('moment-timezone')
 namespace = io.of('/node')
 // const only = (obj, keys) => collect(obj).only(keys).all()
+let pending_job = []
+
 namespace.on("connection",  async(socket) =>  {
     let node_number =  socket.handshake.query.number
-    
     // console.log(state)
     console.log("before node connect", state.nodes)
     state.socket_nodes[node_number]  =  socket
@@ -15,20 +17,7 @@ namespace.on("connection",  async(socket) =>  {
     console.log(`Node number ${node_number} connected`)
     console.log(state.nodes)
     store.sync_to_web()
-    // const sync_nodes = () => {
-    //     try{
-    //         // console.log(state.nodes)
-    //         // console.log("sync to client",  only(Object.values(state.nodes), ["hwnd", "character"]))
-    //         state.client.emit("sync", state.nodes)
-    //     }catch(e){
-    //         console.log("Web client not connected")
-    //     }
-    // }
-    // const only = (obj, keys =[]) => {
-    //     keys.forEach(k => {delete obj[k]})
-
-    // }
-
+    
     //DYNAMIC CHRACTER EVENT LISTENER
     let events =  ["logged_in", "load_failed", "stuck", "disconnected", "request",  "done"]
     events.forEach((v) => {
@@ -41,7 +30,7 @@ namespace.on("connection",  async(socket) =>  {
                 return //DONT CONTINUE REQUEST
             }
                 
-            if (!["logged_in", "load_failed"].includes(v))  { 
+            if (!["logged_in"].includes(v))  { 
                 taken_character =  store.get_available_character()
                 if(taken_character){
                     console.log("TRY TO HANDLE", taken_character['character'])
@@ -55,31 +44,56 @@ namespace.on("connection",  async(socket) =>  {
         })
     })
 
-    socket.on("on_character_routine_done", async(character, routine_name) => {
+    socket.on("on_character_routine_done", async({response, character, routine}) => {
+        // console.log(response)
+        // console.log("account.log", findIndex(state.account_routines.logs, 'character', character))
         let character_index = findIndex(state.account_routines.logs, "character", character)
+        // console.log("index", character_index)
         if(character_index > -1){
-           
-            if(!state.account_routines.logs[character_index].done.includes(routine_name)){
-                let date = formatYMD(req.params.date) || currentDate()
-                let character = req.params.character || null
-                let routine = req.params.routine || null
-                if (!!character && !!routine){
-                  let result = await Account_Routine.updateOne(
-                    { date, "logs.character" : character },
-                    {
-                      $addToSet: {
-                        "logs.$.done": routine,
-                      },
-                    }
-                  )
-          
-                } 
+            console.log("include", !state.account_routines.logs[character_index].done.includes(routine))
+            if(!state.account_routines.logs[character_index].done.includes(routine)){
+                let date = new Date()
+                let hour = date.getHours()
+                //IF BELOW RESET HOUR USE PREVIOUS DAY, else already reset use today
+                let dateString =  hour>= RESET_HOUR ? moment(date).format("YYYY-MM-DD") : moment(date).subtract(1, "days").format("YYYY-MM-DD")
+                
+                await Account_Routine.updateOne(
+                { date: dateString, "logs.character" : character },
+                {
+                    $addToSet: {
+                    "logs.$.done": routine,
+                    },
+                }
+                ).then(() => {
+                    state.account_routines.logs[character_index].done.push(routine)
+                })
             } 
         }
    
     })
 
-
+    socket.on("on_character_dk_empty", async({response, character}) => {
+        let character_index = findIndex(state.account_routines.logs, "character", character)
+        // console.log("index", character_index)
+        if(character_index > -1){
+            console.log("include",!state.accounts[character_index].needs.includes("DK"))
+            if(!state.accounts[character_index].needs.includes("DK")){
+                await Account.updateOne(
+                { "character" : character },
+                {
+                    $addToSet: {
+                    "needs": "DK",
+                    },
+                }
+                ).then((data) => {
+                    console.log(data)
+                    state.accounts[character_index].needs.push("DK")
+                }).catch(ex => {
+                    console.log(ex)
+                })
+            } 
+        }
+    })
 
     socket.on("maintenance_done", () => {
         state.maintenace = false
