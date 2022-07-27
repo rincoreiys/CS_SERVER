@@ -17,7 +17,7 @@ namespace.on("connection",  async(socket) =>  {
     console.log(`Node number ${node_number} connected`)
     console.log(state.nodes)
     store.sync_to_web()
-    
+
     //DYNAMIC CHRACTER EVENT LISTENER
     let events =  ["logged_in", "load_failed", "stuck", "disconnected", "request",  "done"]
     events.forEach((v) => {
@@ -43,6 +43,8 @@ namespace.on("connection",  async(socket) =>  {
             store.sync_to_web()
         })
     })
+
+    
 
     socket.on("on_character_routine_done", async({response, character, routine}) => {
         // console.log(response)
