@@ -66,13 +66,13 @@ module.exports.Store = class Store{
     //     return true
     // }
 
-    undone_routine(character, character_routines, state = this.state){
-        let character_index = findIndex(state.account_routines.logs, 'character', character)
+    undone_routine(account, state = this.state){
+        let character_index = findIndex(state.accounts, 'character', account.character)
         if (character_index > -1 ) {
-            let character_log = state.account_routines.logs[character_index].done
+            let character_log = state.accounts[character_index].done
             let routines_list =  state.routines.map(r => r.class_name)
 
-            let undone_routine = character_routines.filter(cr => !character_log.includes(cr))
+            let undone_routine = character.routines.filter(cr => !character_log.includes(cr))
             console.log(character, character_routines, character_log, undone_routine )
 
             //ONLY RETURN EXIST ROUTINE && UNDONE
@@ -82,13 +82,15 @@ module.exports.Store = class Store{
     }
 
     get_available_character( state  = this.state ){
+
+        let undone =  this.undone_routine(v.character, v.routines)
         // console.log("get_available_character", state.on_hold_character)
         let available_account = Object.assign({}, state.accounts.find((v, i) => 
             !state.on_hold_character.includes(v.character) &&
             !state.online_character.includes(v.character) &&
             !state.stuck_character.includes(v.character) &&
             !state.done_character.includes(v.character) &&
-            this.undone_routine(v.character, v.routines).length
+            undone.length
         ))
         
         // console.log(state.accounts)
@@ -98,12 +100,8 @@ module.exports.Store = class Store{
             // console.log("character", available_account)
             // console.log("character", available_account.character)
             // console.log("routines", available_account.routines)
-            available_account.routines = available_account.routines.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
-            // console.log("populated routines", available_account.routines)
+            available_account.routines = undone.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
         } 
-        // console.log(available_account.routines.map(r => this.state.routines.find(rr => rr.class_name == r)))
-    
-        // console.log("available_account", available_account)
 
         return available_account
         
@@ -208,6 +206,7 @@ module.exports.Store = class Store{
     }
    
 }
+
 
 
 // function objectMap(object, mapFn) {

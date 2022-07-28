@@ -10,6 +10,10 @@ const scm =  {
     subroutine:{
         type: Object,
         default: null
+    },
+    scroll_index:{
+        type:Number,
+        default: 0
     }
    
 }
