@@ -93,7 +93,7 @@ namespace.on("connection",  async(socket) =>  {
         }
     })
 
-    socket.on("set_character_bag_state", async(character, bag_state) => {
+    socket.on("set_character_bag_state", async({character, bag_state}) => {
         let character_index = findIndex(state.accounts, "character". character)
         await Account.updateOne({character}, {
             $set : {
