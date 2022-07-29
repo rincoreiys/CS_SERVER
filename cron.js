@@ -18,6 +18,10 @@ var daily_reset = cron.schedule(`0 0 ${RESET_HOUR} * * *`, async() =>  {
       "done": []
     }
   })
+
+  for (const [key, socket] of Object.entries(state.socket_nodes)) {
+    socket.emit("daily_reset")
+  }
 }, CRON_CONFIG);
 
 var maintenance_start = cron.schedule(`0 0 ${MAINTENANCE_HOUR} * * Thursday`, () =>  {

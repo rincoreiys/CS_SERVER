@@ -74,13 +74,32 @@ namespace.on("connection",  async(socket) =>  {
    
     })
 
+    socket.on("on_sync_done_routines", async({character, routines}) => {
+        // console.log(response)
+        // console.log("account.log", findIndex(state.account_routines.logs, 'character', character))
+        let character_index = findIndex(state.accounts, "character", character)
+        // console.log("index", character_index)
+        if(character_index > -1){
+            await Account.updateOne(
+            {  "character" : character },
+            {
+                $addToSet: {
+                    "done": routine,
+                },
+            }
+            ).then(() => {
+                state.accounts[character_index].done.push(routine)
+            })
+        }
+    })
+
     socket.on("set_character_bag_state", async(character, bag_state) => {
         let character_index = findIndex(state.accounts, "character". character)
         await Account.updateOne({character}, {
             $set : {
                 "state.bag_already_empty_before" : bag_state
             }
-        })
+        }).then(() => { }).finally(() => state.accounts[character_index].state.bag_already_empty_before = bag_state)
 
     })
 

@@ -28,47 +28,75 @@ router
     })
   );
 
+
 router
-  .route("/account_routine/:date?/:character?/:routine?")
-  .get(
-    catchAsync(async (req, res, next) => {
-      let date = formatYMD(req.params.date) || currentDate();
-      let result = await Account_Routine.find({ date });
-      res.status(200).send(result);
-    })
-  )
-  .post(
-    catchAsync(async (req, res, next) => {
-      let date =  req.params.date ? formatYMD(req.params.date) : currentDate()
-      let result = await generate_daily_log(date);
-      res.status(200).send(result);
-    })
-  )
+  .route("/account/reset_routine")
   .patch(
     catchAsync(async (req, res, next) => {
-      
-      let date = formatYMD(req.params.date) || currentDate()
-      let character = req.params.character || null
-      let routine = req.params.routine || null
-      console.log("account.log", findIndexByKey(state.account_routines.logs, 'character', character))
-      if (!!character && !!routine){
-        let result = await Account_Routine.updateMany(
-          { date, "logs.character" : character },
-          {
-            $addToSet: {
-              "logs.$.done": routine,
-            },
-          },
-          {
-            new: true
-          }
-        )
-        res.send(result)
-
-      } 
-      res.status(500).send("No Action Performed")
+      let result = await Account.updateMany({}, {
+        $set : {
+          done: []
+        }
+      })
+      res.status(200).send(result);
     })
-  )
+  );
+
+  router
+  .route("/account/reset_backpack")
+  .patch(
+    catchAsync(async (req, res, next) => {
+      let result = await Account.updateMany({}, {
+        $set : {
+          "config.has_big_pixie": false
+        }
+      })
+      res.status(200).send(result);
+    })
+  );
+
+
+// router
+//   .route("/account_routine/:date?/:character?/:routine?")
+//   .get(
+//     catchAsync(async (req, res, next) => {
+//       let date = formatYMD(req.params.date) || currentDate();
+//       let result = await Account_Routine.find({ date });
+//       res.status(200).send(result);
+//     })
+//   )
+//   .post(
+//     catchAsync(async (req, res, next) => {
+//       let date =  req.params.date ? formatYMD(req.params.date) : currentDate()
+//       let result = await generate_daily_log(date);
+//       res.status(200).send(result);
+//     })
+//   )
+//   .patch(
+//     catchAsync(async (req, res, next) => {
+      
+//       let date = formatYMD(req.params.date) || currentDate()
+//       let character = req.params.character || null
+//       let routine = req.params.routine || null
+//       console.log("account.log", findIndexByKey(state.account_routines.logs, 'character', character))
+//       if (!!character && !!routine){
+//         let result = await Account_Routine.updateMany(
+//           { date, "logs.character" : character },
+//           {
+//             $addToSet: {
+//               "logs.$.done": routine,
+//             },
+//           },
+//           {
+//             new: true
+//           }
+//         )
+//         res.send(result)
+
+//       } 
+//       res.status(500).send("No Action Performed")
+//     })
+//   )
 
 router.route("/account/reorder").patch(
   catchAsync(async (req, res, next) => {

@@ -5,7 +5,11 @@ const Account_Routines = require('./models/account_routine');
 const { generate_daily_log, findIndex } = require('./helper');
 const DEFAULT_NODE = {
     state: false,
-    account: null
+    account: null,
+    active_routine: null,
+    active_index: 0,
+    done: []
+
 }
 
 const MAINTENANCE_HOUR = 15
@@ -72,25 +76,25 @@ module.exports.Store = class Store{
             let character_log = state.accounts[character_index].done
             let routines_list =  state.routines.map(r => r.class_name)
 
-            let undone_routine = character.routines.filter(cr => !character_log.includes(cr))
-            console.log(character, character_routines, character_log, undone_routine )
+            let undone = account.routines.filter(cr => !character_log.includes(cr))
+            console.log(account, account.routines, character_log, undone )
 
             //ONLY RETURN EXIST ROUTINE && UNDONE
-            return undone_routine
+            return undone
         }
         return []
     }
 
     get_available_character( state  = this.state ){
 
-        let undone =  this.undone_routine(v.character, v.routines)
+        let undone = (character) => this.undone_routine(character)
         // console.log("get_available_character", state.on_hold_character)
         let available_account = Object.assign({}, state.accounts.find((v, i) => 
             !state.on_hold_character.includes(v.character) &&
             !state.online_character.includes(v.character) &&
             !state.stuck_character.includes(v.character) &&
             !state.done_character.includes(v.character) &&
-            undone.length
+            undone(v).length
         ))
         
         // console.log(state.accounts)
@@ -100,7 +104,7 @@ module.exports.Store = class Store{
             // console.log("character", available_account)
             // console.log("character", available_account.character)
             // console.log("routines", available_account.routines)
-            available_account.routines = undone.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
+            available_account.routines = available_account.routines.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
         } 
 
         return available_account
