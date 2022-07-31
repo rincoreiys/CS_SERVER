@@ -1,5 +1,5 @@
 const { RESET_HOUR } = require('./cron')
-const { Account, Routine, Product, Account_Routine } = require('./db')
+const { Account, Routine, Product } = require('./db')
 const moment = require('moment-timezone');
 const Account_Routines = require('./models/account_routine');
 const { generate_daily_log, findIndex } = require('./helper');
