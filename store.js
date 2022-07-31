@@ -139,7 +139,7 @@ module.exports.Store = class Store{
         if (!state.online_character.includes(character))   { 
             state.online_character.push(character)
             state.nodes[node_number].account = state.accounts.find(a => a.character == character)
-            
+
         }
     }
 
@@ -198,16 +198,7 @@ module.exports.Store = class Store{
             }
             return doc
         })
-
         this.state.products = await Product.find().lean()
-        
-        let date = new Date()
-        let hour = date.getHours()
-        //IF BELOW RESET HOUR USE PREVIOUS DAY, else already reset use today
-        let dateString =  hour>= RESET_HOUR ? moment(date).format("YYYY-MM-DD") : moment(date).subtract(1, "days").format("YYYY-MM-DD")
-        // let next_reset = moment().format("YYYY-MM-DD")
-        this.state.account_routines =  await generate_daily_log(dateString)
-
     }
    
 }
