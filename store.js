@@ -1,5 +1,6 @@
 const { Account, Routine, Product } = require('./db')
 const moment = require('moment-timezone');
+const { findIndex } = require('./helper');
 const DEFAULT_NODE = {
     state: false,
     account: null,
