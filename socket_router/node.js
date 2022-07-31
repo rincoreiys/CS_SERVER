@@ -118,7 +118,7 @@ namespace.on("connection",  async(socket) =>  {
     })
 
     socket.on("on_character_needs_sync", async({response, character, needs, state}) => {
-        let character_index = findIndex(state.account_routines.logs, "character", character)
+        let character_index = findIndex(state.accounts, "character", character)
         // console.log("index", character_index)
         if(character_index > -1){
             console.log("include",!state.accounts[character_index].needs.includes("DK"))
