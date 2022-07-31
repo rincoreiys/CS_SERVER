@@ -68,13 +68,14 @@ namespace.on("connection",  async(socket) =>  {
                 }
                 ).then(() => {
                     state.accounts[character_index].done.push(routine)
+                    store.sync_to_web()
                 })
             } 
         }
    
     })
 
-    socket.on("on_sync_done_routines", async({character, routines}) => {
+    socket.on("on_sync_done_routines", async({character, done}) => {
         // console.log(response)
         // console.log("account.log", findIndex(state.account_routines.logs, 'character', character))
         let character_index = findIndex(state.accounts, "character", character)
@@ -84,11 +85,13 @@ namespace.on("connection",  async(socket) =>  {
             {  "character" : character },
             {
                 $addToSet: {
-                    "done": routine,
+                    "done": done,
                 },
             }
             ).then(() => {
-                state.accounts[character_index].done.push(routine)
+                let done_routine =  state.accounts[character_index].done
+                state.accounts[character_index].done = [...done_routine,  ...(done.filter(d => !done_routine.find(dr => d == dr)))]
+                store.sync_to_web()
             })
         }
     })
@@ -99,11 +102,22 @@ namespace.on("connection",  async(socket) =>  {
             $set : {
                 "state.bag_already_empty_before" : bag_state
             }
-        }).then(() => { }).finally(() => state.accounts[character_index].state.bag_already_empty_before = bag_state)
+        }).then(() => { }).finally(() => {
+            state.accounts[character_index].state.bag_already_empty_before = bag_state
+            store.sync_to_web()
+        })
 
     })
 
-    socket.on("on_character_dk_empty", async({response, character}) => {
+    socket.on("on_routine_index_changed", ({response, routine, node_number, routine_index } ) =>{
+        if (state.client){
+            state.nodes[node_number].active_index = routine_index
+            state.nodes[node_number].active_routine = routine
+            state.client.emit("sync",  store.serialize())
+        }
+    })
+
+    socket.on("on_character_needs_sync", async({response, character, needs, state}) => {
         let character_index = findIndex(state.account_routines.logs, "character", character)
         // console.log("index", character_index)
         if(character_index > -1){
@@ -112,8 +126,8 @@ namespace.on("connection",  async(socket) =>  {
                 await Account.updateOne(
                 { "character" : character },
                 {
-                    $addToSet: {
-                    "needs": "DK",
+                    [state ? "$addToSet": "$pull"] : {
+                        "needs": needs,
                     },
                 }
                 ).then((data) => {

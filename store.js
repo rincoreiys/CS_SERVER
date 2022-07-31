@@ -8,7 +8,6 @@ const DEFAULT_NODE = {
     account: null,
     active_routine: null,
     active_index: 0,
-    done: []
 
 }
 
@@ -28,6 +27,7 @@ module.exports.Store = class Store{
             2: DEFAULT_NODE,
             3: DEFAULT_NODE,
             4: DEFAULT_NODE,
+            5: DEFAULT_NODE,
         },
         routines: [],
         on_hold_character: [], //by character, added when retrying login and stuck
@@ -139,6 +139,7 @@ module.exports.Store = class Store{
         if (!state.online_character.includes(character))   { 
             state.online_character.push(character)
             state.nodes[node_number].account = state.accounts.find(a => a.character == character)
+            
         }
     }
 
