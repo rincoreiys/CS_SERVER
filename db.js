@@ -10,5 +10,4 @@ mongoose.connect(DB, {
 
 module.exports.Account =  require('./models/account')
 module.exports.Routine = require('./models/routine')
-module.exports.Account_Routine = require('./models/account_routine')
 module.exports.Product = require('./models/product')
