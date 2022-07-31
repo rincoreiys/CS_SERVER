@@ -117,7 +117,8 @@ namespace.on("connection",  async(socket) =>  {
         }
     })
 
-    socket.on("on_character_needs_sync", async({response, character, needs, state}) => {
+    socket.on("on_character_needs_sync", async({response, character, needs, need_state}) => {
+       
         let character_index = findIndex(state.accounts, "character", character)
         // console.log("index", character_index)
         if(character_index > -1){
@@ -126,7 +127,7 @@ namespace.on("connection",  async(socket) =>  {
                 await Account.updateOne(
                 { "character" : character },
                 {
-                    [state ? "$addToSet": "$pull"] : {
+                    [need_state ? "$addToSet": "$pull"] : {
                         "needs": needs,
                     },
                 }
