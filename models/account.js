@@ -1,5 +1,5 @@
 const mongoose  = require("mongoose")
-
+const moment = require("moment-timezone")
 const scm =  {
     level: Number,
     account: String,
@@ -38,7 +38,11 @@ const scm =  {
     },
     needs: [String], //DK, GOLD, Teleport
     routines: [String],
-    done: [String]
+    done: [String],
+    relation_character: [String],
+    last_login: Date,
+    
+
 }
 
 
@@ -47,6 +51,10 @@ const schema = new mongoose.Schema(scm, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } ,
     toJSON : { virtuals: true},
     toObject : { virtuals: true}
+})
+
+schema.virtual("need_changeline",).get(() => {
+    return moment(this.last_login).tz("Asia/Jakarta").diff(moment(), "hours") >= 1
 })
 
 

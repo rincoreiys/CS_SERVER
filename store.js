@@ -56,18 +56,6 @@ module.exports.Store = class Store{
         if( store.state.client)  store.state.client.emit("sync", store.serialize())
     }
 
-    // is_all_routine_done(character, character_routine, state = this.state){
-    //     let character_index = findIndex(state.account_routines.logs, 'character', character)
-    //     if (character_index > -1 ) {
-    //         let character_log = state.account_routines.logs[character_index].done
-    //         let undone_routine = 
-
-            
-    //         return false
-    //     }
-    //     return true
-    // }
-
     undone_routine(account, state = this.state){
         let character_index = findIndex(state.accounts, 'character', account.character)
         if (character_index > -1 ) {
@@ -83,15 +71,30 @@ module.exports.Store = class Store{
         return []
     }
 
+
+    is_related_same_server_on(account){
+        account.relation_character.forEach((character, i) => {
+            if (check_in_account_bucket(character)) return true
+        })
+        return false
+    }
+
+    check_in_account_bucket(character){
+        return (
+            state.on_hold_character.includes(character) &&
+            state.online_character.includes(character) &&
+            state.stuck_character.includes(character) &&
+            state.done_character.includes(character) 
+        )
+    }
+
     get_available_character( state  = this.state ){
 
         let undone = (character) => this.undone_routine(character)
         // console.log("get_available_character", state.on_hold_character)
         let available_account = Object.assign({}, state.accounts.find((v, i) => 
-            !state.on_hold_character.includes(v.character) &&
-            !state.online_character.includes(v.character) &&
-            !state.stuck_character.includes(v.character) &&
-            !state.done_character.includes(v.character) &&
+            !check_in_account_bucket(v.character) && 
+            !is_related_same_server_on(v) &&
             undone(v).length
         ))
         
@@ -103,6 +106,7 @@ module.exports.Store = class Store{
             // console.log("character", available_account.character)
             // console.log("routines", available_account.routines)
             available_account.routines = available_account.routines.map(r => state.routines.find(rr => rr.class_name == r)).filter(r => !!r)
+            available_account.need_changeline = moment(available_account.last_login).tz("Asia/Jakarta").diff(moment(), "hours") >= 1
         } 
 
         return available_account
@@ -137,6 +141,16 @@ module.exports.Store = class Store{
         if (!state.online_character.includes(character))   { 
             state.online_character.push(character)
             state.nodes[node_number].account = state.accounts.find(a => a.character == character)
+
+            let last_login = new Date()
+            let account = state.accounts[findIndex(state.accounts, 'character', character)]
+            account.last_login = last_login
+            Account.updateOne({character}, {
+                $set : {
+                    last_login
+                }
+            })
+            
 
         }
     }

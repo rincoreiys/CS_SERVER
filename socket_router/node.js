@@ -35,6 +35,8 @@ namespace.on("connection",  async(socket) =>  {
                 if(taken_character){
                     console.log("TRY TO HANDLE", taken_character['character'])
                     socket.emit("handle_character", taken_character)
+                    
+                    state.nodes[node_number].account = taken_character
                 }else{
                     console.log("ALL CHARACTER DONE")
                 }
@@ -155,9 +157,19 @@ namespace.on("connection",  async(socket) =>  {
     })
     socket.on("disconnect", () => {
         if (state.nodes[node_number].account) store.release_character(node_number, state.nodes[node_number].account.character)
-        state.nodes[node_number].state = false
-        state.nodes[node_number].account = null
+        state.nodes[node_number] = {
+            state: false,
+            account: null,
+            active_routine: null,
+            active_index: null
+        } 
+
         console.log(`Node number ${node_number} disconnected`)
+        store.sync_to_web()
+    })
+
+    socket.on("sync_instance", (data) => {
+        state.nodes[node_number] = data
         store.sync_to_web()
     })
     

@@ -6,6 +6,7 @@ const { currentDate, formatYMD, generate_daily_log } = require("./../helper");
 const findIndexByKey = (collection, key, value) =>
   collection.indexOf(collection.find((c) => c[key] == value));
 
+const moment = require('moment-timezone')
 
 async function tryCatch(proc, onFailed, onDone){
 
@@ -36,6 +37,19 @@ router
       let result = await Account.updateMany({}, {
         $set : {
           done: []
+        }
+      })
+      res.status(200).send(result);
+    })
+  );
+
+router
+  .route("/account/test")
+  .patch(
+    catchAsync(async (req, res, next) => {
+      let result = await Account.updateMany({}, {
+        $set : {
+          last_login: moment().subtract(1, "days").toDate()
         }
       })
       res.status(200).send(result);
@@ -145,6 +159,14 @@ router.route("/account/:id").patch(
   })
 );
 
+router.route("/account/").get(
+  catchAsync(async (req, res, next) => {
+    let result = await Account.find()
+    // let index = findIndexByKey(state.accounts, "_id", req.params.id);
+    // if (index > -1) state.accounts[index] = result;
+    res.status(200).send(result);
+  })
+);
 module.exports = router;
 
 // const { Account, Routine, Account_Routine } = require("./db");
