@@ -148,8 +148,7 @@ module.exports.Store = class Store{
             let character_index = findIndex(state.accounts, 'character', character)
             if (character_index){
                 let last_login = new Date()
-                let account = state.accounts[character_index]
-                account.last_login = last_login
+                state.accounts[character_index].last_login = last_login
                 await Account.updateOne({character}, {
                     $set : {
                         last_login
