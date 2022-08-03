@@ -139,20 +139,25 @@ module.exports.Store = class Store{
 
     }
 
-    on_character_logged_in(node_number, character,state  = this.state ){
+    async on_character_logged_in(node_number, character,state  = this.state ){
         this.release_character(node_number, character)
         if (!state.online_character.includes(character))   { 
             state.online_character.push(character)
             state.nodes[node_number].account = state.accounts.find(a => a.character == character)
 
-            let last_login = new Date()
-            let account = state.accounts[findIndex(state.accounts, 'character', character)]
-            account.last_login = last_login
-            Account.updateOne({character}, {
-                $set : {
-                    last_login
-                }
-            })
+            let character_index = findIndex(state.accounts, 'character', character)
+            if (character_index){
+                let last_login = new Date()
+                let account = state.accounts[]
+                account.last_login = last_login
+                await Account.updateOne({character}, {
+                    $set : {
+                        last_login
+                    }
+                })
+            }
+
+           
             
 
         }

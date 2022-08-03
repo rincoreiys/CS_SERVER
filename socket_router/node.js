@@ -21,9 +21,9 @@ namespace.on("connection",  async(socket) =>  {
     //DYNAMIC CHRACTER EVENT LISTENER
     let events =  ["logged_in", "load_failed", "stuck", "disconnected", "request",  "done"]
     events.forEach((v) => {
-        socket.on(`on_character_${v}`, ({response, character}) => {  
+        socket.on(`on_character_${v}`, async({response, character}) => {  
             console.log(response)
-            if(store[`on_character_${v}`]) store[`on_character_${v}`](node_number, character) //ONLY RUN METHOD IF IMPLEMENTED
+            if(store[`on_character_${v}`]) await store[`on_character_${v}`](node_number, character) //ONLY RUN METHOD IF IMPLEMENTED
             
             if (state.maintenace){
                 socket.emit("maintenance_start")
