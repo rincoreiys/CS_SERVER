@@ -14,7 +14,6 @@ const MAINTENANCE_END = 19
 const MAINTENANCE_DAY = "Thursday"
 
 
-
 module.exports.Store = class Store{
     state =  {  
         maintenance: this.is_maintenance(),
@@ -31,7 +30,7 @@ module.exports.Store = class Store{
         on_hold_character: [], //by character, added when retrying login and stuck
         online_character: [], // added when character logged in
         stuck_character: [], // added when character stucked
-        done_character: ["aabbcc"],
+        done_character: [],
 
         //WILL BE RESET EVERY SERVER RESET
         socket_nodes:  {},
@@ -122,7 +121,7 @@ module.exports.Store = class Store{
         if (account_index > - 1)  state.on_hold_character.splice(account_index, 1)
         let online_index = state.online_character.indexOf(character)
         if (online_index > - 1)  state.online_character.splice(online_index, 1)
-        console.log("Release" , account_index, online_index)
+        // console.log("Release" , account_index, online_index)
     }
 
     is_maintenance(){
@@ -218,12 +217,3 @@ module.exports.Store = class Store{
     }
    
 }
-
-
-
-// function objectMap(object, mapFn) {
-//     return Object.keys(object).reduce(function(result, key) {
-//         result[key] = mapFn(object[key])
-//         return result
-//     }, {})
-// }

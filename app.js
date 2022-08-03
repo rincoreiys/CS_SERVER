@@ -38,7 +38,6 @@ app.use(err.internalError)
 //START SERVER AFTER DATA INITIALIZE
 store.init().then( () => {
   //DYNAMIC IMPORT
-  console.log("before reset", state.done_character)
   normalizedPath = path.join(__dirname, "socket_router")
   fs.readdirSync(normalizedPath).forEach((file)  => {
     require(path.join(normalizedPath, file))
