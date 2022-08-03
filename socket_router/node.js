@@ -15,7 +15,7 @@ namespace.on("connection",  async(socket) =>  {
         state: true
     }}
     console.log(`Node number ${node_number} connected`)
-    console.log(state.nodes)
+    // console.log(state.nodes)
     store.sync_to_web()
 
     //DYNAMIC CHRACTER EVENT LISTENER

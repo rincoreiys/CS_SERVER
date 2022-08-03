@@ -49,7 +49,8 @@ router
     catchAsync(async (req, res, next) => {
       let result = await Account.updateMany({}, {
         $set : {
-          last_login: moment().subtract(1, "days").toDate()
+          last_login: moment().subtract(1, "days").toDate(),
+          relation_character: []
         }
       })
       res.status(200).send(result);

@@ -63,7 +63,7 @@ module.exports.Store = class Store{
             let routines_list =  state.routines.map(r => r.class_name)
 
             let undone = account.routines.filter(cr => !character_log.includes(cr))
-            console.log(account, account.routines, character_log, undone )
+            // console.log(account, account.routines, character_log, undone )
 
             //ONLY RETURN EXIST ROUTINE && UNDONE
             return undone
@@ -72,24 +72,28 @@ module.exports.Store = class Store{
     }
 
 
-    is_related_same_server_on(account){
-        account.relation_character.forEach((character, i) => {
-            if (check_in_account_bucket(character)) return true
-        })
-        return false
-    }
-
-    check_in_account_bucket(character){
-        return (
-            state.on_hold_character.includes(character) &&
-            state.online_character.includes(character) &&
-            state.stuck_character.includes(character) &&
-            state.done_character.includes(character) 
-        )
-    }
 
     get_available_character( state  = this.state ){
 
+        let is_related_same_server_on = (account) => {
+            let ret = false
+            account.relation_character.forEach((character, i) => {
+                if (check_in_account_bucket(character)) { 
+                    ret =  true
+                }
+            })
+            return ret
+        }
+    
+        let  check_in_account_bucket = (character ) => {
+            return (
+                state.on_hold_character.includes(character) ||
+                state.online_character.includes(character) ||
+                state.stuck_character.includes(character) ||
+                state.done_character.includes(character) 
+            )
+        }
+    
         let undone = (character) => this.undone_routine(character)
         // console.log("get_available_character", state.on_hold_character)
         let available_account = Object.assign({}, state.accounts.find((v, i) => 
